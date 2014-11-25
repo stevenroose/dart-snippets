@@ -1,0 +1,9 @@
+name: stevenroose
+version: 0.1.0
+description: A collection of useful Dart code snippets.
+author: Steven Roose <stevenroose@gmail.com>
+dependencies:
+  cryptoutils: '>=0.1.9'
+
+dev_dependencies:
+#  unittest: any
