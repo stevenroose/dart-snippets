@@ -34,24 +34,22 @@ class ByteSink implements Sink {
    * Data types allowed: [TypedData] (f.e. [Uint8List]), [List]<int>, [int]
    */
   @override
-  void add(dynamic bytes, [int offset, int length]) {
-    if(_buffer == null)
-      throw new StateError("This sink has already been closed.");
+  void add(dynamic/*TypedData|List<int>|int*/ bytes, [int offset, int length]) {
+    _ensureNotClosed();
     // test for typed_data
     if(bytes is TypedData) {
       offset = offset == null ? 0 : offset;
       length = length == null ? bytes.lengthInBytes - offset : length;
       if(offset < 0 || length < 0 || offset > bytes.lengthInBytes ||
-      (offset + length) > bytes.lengthInBytes || (offset + length) < 0) {
+          (offset + length) > bytes.lengthInBytes || (offset + length) < 0) {
         throw new ArgumentError("Invalid offset or lenght.");
       } else if(length == 0) {
         return;
       }
       int newCount = _count + length;
-      if(newCount > _buffer.length)
-        _increaseBufferSize(newCount);
+      _ensureBufferSize(newCount);
       ByteBuffer bytesBuffer = bytes.buffer;
-      _buffer.setRange(_count, _count + length, bytesBuffer.asUint8List(bytes.offsetInBytes + offset, length));
+      _buffer.setRange(_count, newCount, bytesBuffer.asUint8List(bytes.offsetInBytes + offset, length));
       _count = newCount;
     }
     // test for List<int>
@@ -65,25 +63,26 @@ class ByteSink implements Sink {
         return;
       }
       int newCount = _count + length;
-      if(newCount > _buffer.length)
-        _increaseBufferSize(newCount);
+      _ensureBufferSize(newCount);
       _buffer.setRange(_count, _count + length, bytes.getRange(offset, offset + length));
       _count = newCount;
     }
     // test for 1 byte integer
     else if(bytes is int) {
-        if((0xFF & bytes) != bytes)
-          throw new ArgumentError("Not a valid byte value: should be between 0 and 255.");
         int newCount = _count + 1;
-        if(newCount > _buffer.length)
-          _increaseBufferSize(newCount);
+        _ensureBufferSize(newCount);
         _buffer[_count] = bytes;
         _count = newCount;
       }
   }
 
-  void _increaseBufferSize(int minimalLength) {
-    Uint8List newBuffer = new Uint8List(max(_buffer.length << 1, minimalLength));
+  /**
+   * Increase the buffer to at least [minimalSize].
+   */
+  void _ensureBufferSize(int minimalSize) {
+    if(_buffer.length <= minimalSize)
+      return;
+    Uint8List newBuffer = new Uint8List(max(_buffer.length << 1, minimalSize));
     newBuffer.setRange(0, _count, _buffer);
     _buffer = newBuffer;
   }
@@ -92,8 +91,7 @@ class ByteSink implements Sink {
    * Reset the sink to an empty one.
    */
   void reset() {
-    if(_buffer == null)
-      throw new StateError("This sink has already been closed.");
+    _ensureNotClosed();
     _count = 0;
   }
 
@@ -102,8 +100,7 @@ class ByteSink implements Sink {
    */
   @override
   void close() {
-    if(_buffer == null)
-      throw new StateError("This sink has already been closed.");
+    _ensureNotClosed();
     _buffer = null;
     _count = null;
   }
@@ -112,8 +109,7 @@ class ByteSink implements Sink {
    * Get the current size of the content of the sink.
    */
   int get size {
-    if(_buffer == null)
-      throw new StateError("This sink has already been closed.");
+    _ensureNotClosed();
     return _count;
   }
 
@@ -124,28 +120,34 @@ class ByteSink implements Sink {
    * Retrieve the content of the sink as a [Uint8List].
    */
   Uint8List toUint8List([int offset = 0, int length]) {
-    if (_buffer == null)
-      throw new StateError("This sink has already been closed.");
+    _ensureNotClosed();
     if(length == null)
       length = _count;
     if(offset < 0 || length < 0 || (offset + length) > _count || (offset + length) < 0)
       throw new ArgumentError("Offset and length values of $offset and $length invalid for sink size $_count");
-    return new Uint8List.view(_buffer.buffer, offset, length);
+    return _buffer.buffer.asUint8List(offset, length);
   }
 
   /**
    * Retrieve the content of the sink as a [ByteData] object.
    */
   ByteData toByteData() {
-    if (_buffer == null)
-      throw new StateError("This sink has already been closed.");
-    return new ByteData.view(_buffer.buffer, 0, _count);
+    _ensureNotClosed();
+    return _buffer.buffer.asByteData(0, _count);
   }
 
   /**
    * Retrieve the content of the sink as a hexadecimal string.
    */
   String toHexString() => CryptoUtils.bytesToHex(toUint8List());
+
+  /**
+   * Throw if this sink has already been closed.
+   */
+  void _ensureNotClosed() {
+    if (_buffer == null)
+      throw new StateError("This sink has already been closed.");
+  }
 
 
 }
