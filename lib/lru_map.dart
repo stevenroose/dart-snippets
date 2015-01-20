@@ -1,6 +1,7 @@
 library stevenroose.lru_map;
 
 import "dart:collection";
+import "dart:mirrors";
 
 
 /**
@@ -20,8 +21,8 @@ class LRUMap<K,V> implements Map<K,V> {
    * Create a new LRUMap.
    *
    * [capacity] is the maximum capacity of the map and defaults to 100.
-   * If [onLRURemoved] is provided, the function will be called whenever a new element is added and the map
-   * is at maximum capacity. The function will be called with the key and value of the least-recently-used entry.
+   * If [onLRURemoved] is provided, the function will be called whenever the least-recently-used entry
+   * is removed from the map. It will be called with the key and value of this entry as parameters.
    */
   LRUMap({int this.capacity: 100, Function this.onLRURemoved}) : _map = new LinkedHashMap<K,V>();
 
