@@ -1,7 +1,10 @@
 library stevenroose.lru_map;
 
 import "dart:collection";
-import "dart:mirrors";
+
+import "package:zengen/zengen.dart";
+
+part "lru_map.g.dart";
 
 
 /**
@@ -10,12 +13,13 @@ import "dart:mirrors";
  *
  * It is possible to provide a method that will be called whenever the LRU element is removed from the map.
  */
-@proxy
-class LRUMap<K,V> implements Map<K,V> {
+class _LRUMap<K,V> { // implements Map<K,V> {
 
   final int capacity;
   final Function onLRURemoved;
-  final LinkedHashMap _map;
+
+  @Delegate()
+  final Map<K,V> _map;
 
   /**
    * Create a new LRUMap.
@@ -24,7 +28,7 @@ class LRUMap<K,V> implements Map<K,V> {
    * If [onLRURemoved] is provided, the function will be called whenever the least-recently-used entry
    * is removed from the map. It will be called with the key and value of this entry as parameters.
    */
-  LRUMap({int this.capacity: 100, Function this.onLRURemoved}) : _map = new LinkedHashMap<K,V>();
+  _LRUMap({int this.capacity: 100, Function this.onLRURemoved}) : _map = new LinkedHashMap<K,V>();
 
   @override
   V operator [](K key) {
@@ -49,7 +53,4 @@ class LRUMap<K,V> implements Map<K,V> {
     if(onLRURemoved != null)
       onLRURemoved(key, value);
   }
-
-  @override
-  noSuchMethod(Invocation inv) => reflect(_map).delegate(inv);
 }
