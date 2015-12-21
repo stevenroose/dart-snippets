@@ -4,7 +4,7 @@ import "dart:collection";
 
 import "package:zengen/zengen.dart";
 
-part "lru_map.g.dart";
+part "src/lru_map.g.dart";
 
 
 /**
